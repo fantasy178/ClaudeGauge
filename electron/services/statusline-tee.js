@@ -31,12 +31,22 @@ process.stdin.on("end", () => {
     return;
   }
 
-  const child = spawn(cfg.command, cfg.args || [], {
-    shell: true,
-    stdio: ["pipe", "inherit", "inherit"],
+  // Strip outermost wrapping quotes around the executable path. Node spawn handles
+  // spaces correctly when shell:false is used (we pass command and args separately).
+  const cmd = String(cfg.command).replace(/^"|"$/g, "");
+  const child = spawn(cmd, cfg.args || [], {
+    shell: false,
+    stdio: ["pipe", "pipe", "pipe"],
+    windowsHide: true,
   });
+  let out = "";
+  child.stdout.on("data", (b) => (out += b.toString("utf8")));
+  child.stderr.on("data", () => {});
   child.stdin.write(data);
   child.stdin.end();
-  child.on("exit", (code) => process.exit(code || 0));
+  child.on("exit", () => {
+    process.stdout.write(out);
+    process.exit(0);
+  });
   child.on("error", () => process.exit(0));
 });
