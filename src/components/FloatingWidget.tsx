@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
-import { listen } from "@tauri-apps/api/event";
-import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
+import { bridge } from "../bridge";
 import { useUI } from "../store";
 import { useHistoricalData } from "../hooks/useHistoricalData";
 import { useLiveData } from "../hooks/useLiveData";
@@ -14,34 +13,26 @@ export function FloatingWidget() {
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const unlisten = listen("force-refresh", () => {
+    const unsub = bridge.onForceRefresh(() => {
       refresh();
     });
-    return () => {
-      unlisten.then((fn) => fn()).catch(() => {});
-    };
+    return unsub;
   }, [refresh]);
 
   useEffect(() => {
     if (!rootRef.current) return;
     const h = rootRef.current.scrollHeight + 16;
-    getCurrentWindow()
-      .setSize(new LogicalSize(256, h))
-      .catch(() => {});
+    bridge.setSize(256, h).catch(() => {});
   }, [expanded]);
 
   const hide = () => {
-    getCurrentWindow().hide().catch(() => {});
+    bridge.hide().catch(() => {});
   };
 
   return (
-    <div className="widget" data-tauri-drag-region ref={rootRef}>
-      <div className="widget__controls">
-        <button
-          className="widget__btn"
-          title="刷新"
-          onClick={() => refresh()}
-        >
+    <div className="widget" ref={rootRef} style={{ WebkitAppRegion: "drag" } as React.CSSProperties}>
+      <div className="widget__controls" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
+        <button className="widget__btn" title="刷新" onClick={() => refresh()}>
           ⟳
         </button>
         <button
