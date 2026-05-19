@@ -1,0 +1,7 @@
+[net]
+retry = 10
+git-fetch-with-cli = true
+
+[http]
+timeout = 60
+multiplexing = false

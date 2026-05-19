@@ -1,0 +1,48 @@
+.usage-bar {
+  margin-bottom: 5px;
+}
+.usage-bar__row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2px;
+  font-size: 9px;
+}
+.usage-bar__label {
+  color: #6b7280;
+}
+.usage-bar__meta {
+  display: flex;
+  gap: 6px;
+}
+.usage-bar__pct {
+  font-weight: 600;
+}
+.usage-bar__reset {
+  color: #4b5563;
+}
+.usage-bar__track {
+  background: #2d2d4e;
+  border-radius: 4px;
+  height: 5px;
+  overflow: hidden;
+}
+.usage-bar__fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+.usage-bar--claude .usage-bar__pct {
+  color: #a78bfa;
+}
+.usage-bar--claude .usage-bar__fill {
+  background: linear-gradient(90deg, #7c3aed, #a78bfa);
+}
+.usage-bar--codex .usage-bar__track {
+  background: #1a3a2a;
+}
+.usage-bar--codex .usage-bar__pct {
+  color: #34d399;
+}
+.usage-bar--codex .usage-bar__fill {
+  background: linear-gradient(90deg, #059669, #34d399);
+}

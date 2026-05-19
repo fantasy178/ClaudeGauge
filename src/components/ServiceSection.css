@@ -1,0 +1,36 @@
+.service {
+  margin-bottom: 6px;
+}
+.service__head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 7px;
+}
+.service__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.service__name {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.service__meta {
+  font-size: 8px;
+  color: #4b5563;
+  margin-left: auto;
+}
+.service--claude .service__dot {
+  background: #a78bfa;
+}
+.service--claude .service__name {
+  color: #a78bfa;
+}
+.service--codex .service__dot {
+  background: #34d399;
+}
+.service--codex .service__name {
+  color: #34d399;
+}

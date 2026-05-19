@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash *)",
+      "Bash(node -e ' *)",
+      "Bash(powershell *)"
+    ]
+  }
+}

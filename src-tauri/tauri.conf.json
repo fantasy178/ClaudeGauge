@@ -1,0 +1,41 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "ClaudeGauge",
+  "version": "0.1.0",
+  "identifier": "com.claudegauge.app",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "ClaudeGauge",
+        "width": 240,
+        "height": 220,
+        "minWidth": 240,
+        "maxWidth": 240,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "category": "DeveloperTool",
+    "shortDescription": "Claude Code / Codex usage dashboard for Windows",
+    "longDescription": "Always-on-top widget showing Claude Code and Codex rate limit, token, and cache usage.",
+    "targets": ["msi"],
+    "icon": ["icons/icon.png"]
+  }
+}
