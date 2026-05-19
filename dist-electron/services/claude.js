@@ -62,12 +62,42 @@ function parseRateLimit(node) {
         resets_at: new Date(resetsUnix * 1000).toISOString(),
     };
 }
+function extractPlanType(v) {
+    // 1. Direct fields (newer Claude Code versions may add these)
+    const candidates = [
+        v?.rate_limits?.plan_type,
+        v?.rate_limits?.subscription,
+        v?.subscription,
+        v?.subscription_tier,
+        v?.account?.subscription,
+        v?.account?.plan,
+        v?.account?.tier,
+        v?.plan_type,
+        v?.plan,
+    ];
+    for (const c of candidates) {
+        if (typeof c === "string" && c.trim())
+            return c.trim();
+    }
+    // 2. Infer from 1M context availability (Max-only feature)
+    const modelId = v?.model?.id ?? "";
+    const cwSize = v?.context_window?.context_window_size ?? 0;
+    const exceeds200k = v?.exceeds_200k_tokens === true;
+    if (modelId.includes("[1m]") || cwSize >= 1_000_000 || exceeds200k) {
+        return "max";
+    }
+    if (cwSize >= 200_000) {
+        return "pro";
+    }
+    return null;
+}
 function parseClaudeLive(jsonText) {
     const v = JSON.parse(jsonText);
     return {
         five_hour: parseRateLimit(v?.rate_limits?.five_hour),
         seven_day: parseRateLimit(v?.rate_limits?.seven_day),
         model_name: v?.model?.display_name ?? null,
+        plan_type: extractPlanType(v),
     };
 }
 async function readLive() {
@@ -89,6 +119,9 @@ function extractRecord(v) {
         return null;
     const model = v?.message?.model;
     if (typeof model !== "string")
+        return null;
+    // Skip internal synthetic models (Claude Code compaction summaries, etc.)
+    if (model === "<synthetic>" || model.includes("synthetic"))
         return null;
     const usage = v?.message?.usage ?? {};
     return {
@@ -194,6 +227,12 @@ async function aggregateHistory() {
 function empty() {
     return { input: 0, output: 0, cache_read: 0, cache_creation: 0 };
 }
+function hookCommand(scriptPath) {
+    if (process.platform === "win32") {
+        return `node "${scriptPath.replace(/\\/g, "/")}"`;
+    }
+    return `node "${scriptPath}"`;
+}
 // Hook writer
 async function ensureStopHook() {
     const claudeDir = homeClaude();
@@ -210,18 +249,31 @@ async function ensureStopHook() {
         root.hooks = {};
     if (!Array.isArray(root.hooks.Stop))
         root.hooks.Stop = [];
-    const alreadyInstalled = root.hooks.Stop.some((h) => Array.isArray(h?.hooks) &&
-        h.hooks.some((x) => x?.comment === HOOK_MARKER));
-    if (alreadyInstalled)
-        return;
-    const livePath = liveFilePath();
-    const cmd = process.platform === "win32"
-        ? `more > "${livePath}"`
-        : `cat > "${livePath}"`;
-    root.hooks.Stop.push({
-        matcher: "",
-        hooks: [{ type: "command", command: cmd, comment: HOOK_MARKER }],
-    });
+    // Resolve hook-writer.js path. It is shipped beside the compiled main.js.
+    const scriptPath = path.join(__dirname, "hook-writer.js");
+    const desiredCmd = hookCommand(scriptPath);
+    // Find existing entry with our marker
+    let found = false;
+    for (const group of root.hooks.Stop) {
+        if (!Array.isArray(group?.hooks))
+            continue;
+        for (const inner of group.hooks) {
+            if (inner?.comment === HOOK_MARKER) {
+                found = true;
+                // Upgrade: replace command if it doesn't match current desired command.
+                if (inner.command !== desiredCmd) {
+                    inner.command = desiredCmd;
+                    inner.type = "command";
+                }
+            }
+        }
+    }
+    if (!found) {
+        root.hooks.Stop.push({
+            matcher: "",
+            hooks: [{ type: "command", command: desiredCmd, comment: HOOK_MARKER }],
+        });
+    }
     await fs.promises.writeFile(settingsPath, JSON.stringify(root, null, 2));
 }
 async function removeStopHook() {

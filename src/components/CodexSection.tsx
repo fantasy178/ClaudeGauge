@@ -26,7 +26,10 @@ export function CodexSection() {
   const month = hist?.month_total ?? 0;
   const cacheRate = hist && hist.today_total > 0 ? hist.today_cached / hist.today_total : 0;
   const saved = hist?.today_cached ?? 0;
-  const meta = [live?.plan_type, live?.model_name].filter(Boolean).join(" · ") || undefined;
+  const meta =
+    [live?.plan_type?.toUpperCase(), live?.model_name]
+      .filter(Boolean)
+      .join(" · ") || undefined;
 
   return (
     <ServiceSection name="CODEX" color="codex" meta={meta}>

@@ -45,6 +45,8 @@ const DEFAULT = {
     start_minimized: false,
     last_x: null,
     last_y: null,
+    opacity: 1.0,
+    pinned: false,
 };
 async function load() {
     try {

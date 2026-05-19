@@ -8,6 +8,9 @@ const api = {
     installHook: () => electron_1.ipcRenderer.invoke("install_hook"),
     removeHook: () => electron_1.ipcRenderer.invoke("remove_hook"),
     setSize: (width, height) => electron_1.ipcRenderer.invoke("set_size", width, height),
+    getConfig: () => electron_1.ipcRenderer.invoke("get_config"),
+    setOpacity: (opacity) => electron_1.ipcRenderer.invoke("set_opacity", opacity),
+    setPinned: (pinned) => electron_1.ipcRenderer.invoke("set_pinned", pinned),
     onLiveUpdate: (cb) => {
         const handler = (_e, snap) => cb(snap);
         electron_1.ipcRenderer.on("live-update", handler);

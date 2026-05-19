@@ -7,6 +7,9 @@ export interface Bridge {
   installHook(): Promise<void>;
   removeHook(): Promise<void>;
   setSize(width: number, height: number): Promise<void>;
+  getConfig(): Promise<{ opacity: number; pinned: boolean }>;
+  setOpacity(opacity: number): Promise<void>;
+  setPinned(pinned: boolean): Promise<void>;
   onLiveUpdate(cb: (snap: LiveSnapshot) => void): () => void;
   onForceRefresh(cb: () => void): () => void;
 }
@@ -28,6 +31,9 @@ function mockBridge(): Bridge {
     installHook: async () => {},
     removeHook: async () => {},
     setSize: async () => {},
+    getConfig: async () => ({ opacity: 1, pinned: false }),
+    setOpacity: async () => {},
+    setPinned: async () => {},
     onLiveUpdate: () => () => {},
     onForceRefresh: () => () => {},
   };

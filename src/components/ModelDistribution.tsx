@@ -13,9 +13,11 @@ function colorFor(model: string): string {
 
 function labelFor(model: string): string {
   return model
-    .replace(/^claude /i, "")
+    .replace(/^claude[-\s]/i, "")
     .replace(/-\d{8}$/, "")
-    .replace(/\s*\(.*\)$/, "");
+    .replace(/\s*\(.*\)$/, "")
+    .replace(/-(\d+)-(\d+)\b/g, " $1.$2")
+    .replace(/^([a-z])/i, (m) => m.toUpperCase());
 }
 
 interface Props {

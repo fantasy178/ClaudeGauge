@@ -47,20 +47,34 @@ let mainWindow = null;
 let tray = null;
 let watcher = null;
 let lastEmitTs = 0;
+let lastGoodSnap = { claude: null, codex: null };
 const VITE_DEV_URL = process.env.VITE_DEV_URL || "http://localhost:1420";
 const isDev = !electron_1.app.isPackaged && process.env.CLAUDEGAUGE_DEV === "1";
 function buildPath() {
     return path.join(__dirname, "..", "dist", "index.html");
 }
 function trayIconPath(name) {
-    const base = isDev
-        ? path.join(__dirname, "..", "build")
-        : path.join(process.resourcesPath, "build");
-    return path.join(base, name);
+    // When packaged: process.resourcesPath/build/...
+    // When dev/direct: <appRoot>/build/...
+    const packagedPath = path.join(process.resourcesPath, "build", name);
+    if (fs.existsSync(packagedPath))
+        return packagedPath;
+    const devPath = path.join(__dirname, "..", "build", name);
+    return devPath;
 }
 async function getLive() {
     const [c, x] = await Promise.all([claude.readLive(), codex.readLive()]);
-    return { claude: c, codex: x };
+    // Preserve last known good data when current read is null
+    // (handles empty-file overwrites from misconfigured Claude hooks)
+    const snap = {
+        claude: c ?? lastGoodSnap.claude,
+        codex: x ?? lastGoodSnap.codex,
+    };
+    if (c)
+        lastGoodSnap.claude = c;
+    if (x)
+        lastGoodSnap.codex = x;
+    return snap;
 }
 async function refreshHistory() {
     const [c, x] = await Promise.all([
@@ -130,23 +144,33 @@ async function createWindow() {
         x,
         y,
         frame: false,
-        transparent: true,
+        transparent: false,
         resizable: false,
         alwaysOnTop: true,
-        skipTaskbar: true,
+        skipTaskbar: false,
         show: !config.start_minimized,
-        backgroundColor: "#00000000",
+        backgroundColor: "#1a1a2e",
+        opacity: config.opacity ?? 1.0,
+        movable: !config.pinned,
         webPreferences: {
             preload: path.join(__dirname, "preload.js"),
             contextIsolation: true,
             nodeIntegration: false,
         },
     });
-    mainWindow.on("move", () => {
+    mainWindow.webContents.on("did-fail-load", (_e, code, desc) => {
+        console.error("Window failed to load:", code, desc);
+    });
+    mainWindow.once("ready-to-show", () => {
+        mainWindow?.show();
+        mainWindow?.focus();
+    });
+    mainWindow.on("move", async () => {
         if (!mainWindow)
             return;
         const [nx, ny] = mainWindow.getPosition();
-        cfg.save({ ...config, last_x: nx, last_y: ny }).catch(() => { });
+        const c = await cfg.load();
+        cfg.save({ ...c, last_x: nx, last_y: ny }).catch(() => { });
     });
     mainWindow.on("closed", () => {
         mainWindow = null;
@@ -209,7 +233,19 @@ function registerIpc() {
     electron_1.ipcMain.handle("set_size", (_e, width, height) => {
         if (!mainWindow)
             return;
-        mainWindow.setSize(Math.round(width), Math.round(height), false);
+        mainWindow.setContentSize(Math.round(width), Math.round(height), false);
+    });
+    electron_1.ipcMain.handle("get_config", () => cfg.load());
+    electron_1.ipcMain.handle("set_opacity", async (_e, opacity) => {
+        const clamped = Math.max(0.2, Math.min(1.0, opacity));
+        mainWindow?.setOpacity(clamped);
+        const c = await cfg.load();
+        await cfg.save({ ...c, opacity: clamped });
+    });
+    electron_1.ipcMain.handle("set_pinned", async (_e, pinned) => {
+        mainWindow?.setMovable(!pinned);
+        const c = await cfg.load();
+        await cfg.save({ ...c, pinned });
     });
 }
 electron_1.app.whenReady().then(async () => {

@@ -10,6 +10,14 @@ const api = {
   removeHook: (): Promise<void> => ipcRenderer.invoke("remove_hook"),
   setSize: (width: number, height: number): Promise<void> =>
     ipcRenderer.invoke("set_size", width, height),
+  getConfig: (): Promise<{
+    opacity: number;
+    pinned: boolean;
+  }> => ipcRenderer.invoke("get_config"),
+  setOpacity: (opacity: number): Promise<void> =>
+    ipcRenderer.invoke("set_opacity", opacity),
+  setPinned: (pinned: boolean): Promise<void> =>
+    ipcRenderer.invoke("set_pinned", pinned),
   onLiveUpdate: (cb: (snap: LiveSnapshot) => void) => {
     const handler = (_e: Electron.IpcRendererEvent, snap: LiveSnapshot) => cb(snap);
     ipcRenderer.on("live-update", handler);

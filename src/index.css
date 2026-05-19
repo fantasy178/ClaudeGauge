@@ -26,7 +26,8 @@ body {
 .widget__controls {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
   margin-bottom: 8px;
 }
 .widget__btn {
@@ -40,6 +41,31 @@ body {
 }
 .widget__btn:hover {
   color: #a78bfa;
+}
+.widget__btn--active {
+  color: #a78bfa;
+}
+.widget__slider {
+  flex: 1;
+  min-width: 50px;
+  max-width: 80px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #2d2d4e;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+  margin-right: 4px;
+}
+.widget__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  background: #a78bfa;
+  border-radius: 50%;
+  cursor: pointer;
 }
 .divider {
   border-top: 1px solid #2d2d4e;

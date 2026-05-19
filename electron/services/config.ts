@@ -11,6 +11,8 @@ const DEFAULT: AppConfig = {
   start_minimized: false,
   last_x: null,
   last_y: null,
+  opacity: 1.0,
+  pinned: false,
 };
 
 export async function load(): Promise<AppConfig> {

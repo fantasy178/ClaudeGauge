@@ -7,7 +7,8 @@ export interface ClaudeLive {
   five_hour: RateLimit | null;
   seven_day: RateLimit | null;
   model_name: string | null;
-  session_started_at: string | null;
+  plan_type: string | null;
+  session_started_at?: string | null;
 }
 
 export interface CodexLive {

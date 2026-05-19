@@ -40,7 +40,11 @@ export function ClaudeSection() {
     <ServiceSection
       name="CLAUDE"
       color="claude"
-      meta={live?.model_name ?? undefined}
+      meta={
+        [live?.plan_type?.toUpperCase(), live?.model_name]
+          .filter(Boolean)
+          .join(" · ") || undefined
+      }
     >
       <UsageBar
         label="5H"

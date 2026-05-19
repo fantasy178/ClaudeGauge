@@ -7,6 +7,7 @@ export interface ClaudeLive {
   five_hour: RateLimit | null;
   seven_day: RateLimit | null;
   model_name: string | null;
+  plan_type: string | null;
 }
 
 export interface CodexLive {
@@ -50,4 +51,6 @@ export interface AppConfig {
   start_minimized: boolean;
   last_x: number | null;
   last_y: number | null;
+  opacity: number;
+  pinned: boolean;
 }

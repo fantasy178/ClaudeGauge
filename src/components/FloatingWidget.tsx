@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { bridge } from "../bridge";
 import { useUI } from "../store";
 import { useHistoricalData } from "../hooks/useHistoricalData";
@@ -11,6 +11,27 @@ export function FloatingWidget() {
   const { refresh } = useHistoricalData();
   const { expanded, toggleExpanded } = useUI();
   const rootRef = useRef<HTMLDivElement>(null);
+  const [opacity, setOpacityState] = useState(1.0);
+  const [pinned, setPinnedState] = useState(false);
+
+  useEffect(() => {
+    bridge.getConfig().then((c) => {
+      setOpacityState(c.opacity ?? 1.0);
+      setPinnedState(c.pinned ?? false);
+    });
+  }, []);
+
+  const changeOpacity = (v: number) => {
+    const clamped = Math.max(0.3, Math.min(1.0, v));
+    setOpacityState(clamped);
+    bridge.setOpacity(clamped).catch(() => {});
+  };
+
+  const togglePinned = () => {
+    const next = !pinned;
+    setPinnedState(next);
+    bridge.setPinned(next).catch(() => {});
+  };
 
   useEffect(() => {
     const unsub = bridge.onForceRefresh(() => {
@@ -21,17 +42,58 @@ export function FloatingWidget() {
 
   useEffect(() => {
     if (!rootRef.current) return;
-    const h = rootRef.current.scrollHeight + 16;
-    bridge.setSize(256, h).catch(() => {});
-  }, [expanded]);
+    const el = rootRef.current;
+    let pending = false;
+    const update = () => {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const h = el.getBoundingClientRect().height + 16;
+          bridge.setSize(256, h).catch(() => {});
+          pending = false;
+        });
+      });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const hide = () => {
     bridge.hide().catch(() => {});
   };
 
   return (
-    <div className="widget" ref={rootRef} style={{ WebkitAppRegion: "drag" } as React.CSSProperties}>
-      <div className="widget__controls" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
+    <div
+      className="widget"
+      ref={rootRef}
+      style={{
+        WebkitAppRegion: pinned ? "no-drag" : "drag",
+      } as React.CSSProperties}
+    >
+      <div
+        className="widget__controls"
+        style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+      >
+        <input
+          className="widget__slider"
+          type="range"
+          min={30}
+          max={100}
+          step={5}
+          value={Math.round(opacity * 100)}
+          onChange={(e) => changeOpacity(+e.target.value / 100)}
+          title={`透明度 ${Math.round(opacity * 100)}%`}
+        />
+        <button
+          className={`widget__btn ${pinned ? "widget__btn--active" : ""}`}
+          title={pinned ? "解除釘選" : "釘選位置"}
+          onClick={togglePinned}
+        >
+          {pinned ? "📌" : "📍"}
+        </button>
         <button className="widget__btn" title="刷新" onClick={() => refresh()}>
           ⟳
         </button>
