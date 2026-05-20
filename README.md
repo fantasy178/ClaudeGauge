@@ -2,7 +2,7 @@
 
 Windows 桌面懸浮儀表板，即時顯示 **Claude Code** 和 **OpenAI Codex** 訂閱方案的用量。
 
-![ClaudeGauge](build/icon.png)
+![alt text](image.png)
 
 ## 為什麼需要
 
