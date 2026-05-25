@@ -39,14 +39,30 @@ function trayIconPath(name: string): string {
 
 async function getLive(): Promise<LiveSnapshot> {
   const [c, x] = await Promise.all([claude.readLive(), codex.readLive()]);
-  // Preserve last known good data when current read is null
-  // (handles empty-file overwrites from misconfigured Claude hooks)
+  const claudeSnap = c
+    ? {
+        five_hour: c.five_hour ?? lastGoodSnap.claude?.five_hour ?? null,
+        seven_day: c.seven_day ?? lastGoodSnap.claude?.seven_day ?? null,
+        model_name: c.model_name ?? lastGoodSnap.claude?.model_name ?? null,
+        plan_type: c.plan_type ?? lastGoodSnap.claude?.plan_type ?? null,
+      }
+    : lastGoodSnap.claude;
+  const codexSnap = x
+    ? {
+        five_hour: x.five_hour ?? lastGoodSnap.codex?.five_hour ?? null,
+        seven_day: x.seven_day ?? lastGoodSnap.codex?.seven_day ?? null,
+        plan_type: x.plan_type ?? lastGoodSnap.codex?.plan_type ?? null,
+        model_name: x.model_name ?? lastGoodSnap.codex?.model_name ?? null,
+      }
+    : lastGoodSnap.codex;
+
+  // Preserve last known good fields when current live data is partial.
   const snap: LiveSnapshot = {
-    claude: c ?? lastGoodSnap.claude,
-    codex: x ?? lastGoodSnap.codex,
+    claude: claudeSnap,
+    codex: codexSnap,
   };
-  if (c) lastGoodSnap.claude = c;
-  if (x) lastGoodSnap.codex = x;
+  if (claudeSnap) lastGoodSnap.claude = claudeSnap;
+  if (codexSnap) lastGoodSnap.codex = codexSnap;
   return snap;
 }
 
