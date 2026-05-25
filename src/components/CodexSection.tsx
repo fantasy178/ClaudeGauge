@@ -33,18 +33,27 @@ export function CodexSection() {
 
   return (
     <ServiceSection name="CODEX" color="codex" meta={meta}>
-      <UsageBar
-        label="5H"
-        percent={live?.five_hour?.used_percent ?? 0}
-        resetsAt={live?.five_hour?.resets_at ?? null}
-        color="codex"
-      />
-      <UsageBar
-        label="7D"
-        percent={live?.seven_day?.used_percent ?? 0}
-        resetsAt={live?.seven_day?.resets_at ?? null}
-        color="codex"
-      />
+      {live?.five_hour ? (
+        <UsageBar
+          label="5H"
+          percent={live.five_hour.used_percent}
+          resetsAt={live.five_hour.resets_at}
+          color="codex"
+        />
+      ) : null}
+      {live?.seven_day ? (
+        <UsageBar
+          label="7D"
+          percent={live.seven_day.used_percent}
+          resetsAt={live.seven_day.resets_at}
+          color="codex"
+        />
+      ) : null}
+      {!live?.five_hour && !live?.seven_day ? (
+        <div style={{ fontSize: 9, color: "#4b5563", padding: "2px 0" }}>
+          無 rate limit 資料
+        </div>
+      ) : null}
 
       {expanded ? (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 5 }}>

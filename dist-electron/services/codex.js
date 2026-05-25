@@ -61,6 +61,36 @@ function parseCodexRateLimit(node) {
         resets_at: new Date(resetsUnix * 1000).toISOString(),
     };
 }
+// Codex emits up to two windows under primary/secondary, but the position is
+// NOT stable: some accounts report the 7-day window as `primary` with `secondary`
+// null. Classify by window_minutes instead — ~300 min = 5H, ~10080 min = 7D.
+function classifyRateLimits(rl) {
+    let five_hour = null;
+    let seven_day = null;
+    const now = Date.now();
+    for (const node of [rl?.primary, rl?.secondary]) {
+        if (!node)
+            continue;
+        const parsed = parseCodexRateLimit(node);
+        if (!parsed)
+            continue;
+        // Discard already-expired windows — the percentage has since reset and is
+        // no longer meaningful (e.g. a stale 5H reading from days ago).
+        if (new Date(parsed.resets_at).getTime() < now)
+            continue;
+        const mins = typeof node.window_minutes === "number" ? node.window_minutes : null;
+        // 7-day window (10080 min) vs everything shorter (5h = 300 min).
+        if (mins !== null && mins >= 1440) {
+            if (!seven_day)
+                seven_day = parsed;
+        }
+        else {
+            if (!five_hour)
+                five_hour = parsed;
+        }
+    }
+    return { five_hour, seven_day };
+}
 async function parseSessionFile(filePath) {
     const tokens = { input: 0, cached: 0, output: 0, reasoning: 0 };
     let latestLive = null;
@@ -87,9 +117,10 @@ async function parseSessionFile(filePath) {
             }
             else if (v?.type === "event_msg" && v?.payload?.type === "token_count") {
                 const rl_ = v?.payload?.rate_limits ?? {};
+                const { five_hour, seven_day } = classifyRateLimits(rl_);
                 latestLive = {
-                    five_hour: parseCodexRateLimit(rl_.primary),
-                    seven_day: parseCodexRateLimit(rl_.secondary),
+                    five_hour,
+                    seven_day,
                     plan_type: typeof rl_.plan_type === "string" ? rl_.plan_type : null,
                     model_name: latestModel,
                 };
@@ -159,11 +190,49 @@ async function findLatestSession() {
     return best?.path ?? null;
 }
 async function readLive() {
-    const p = await findLatestSession();
-    if (!p)
+    const dir = sessionsDir();
+    try {
+        await fs.promises.access(dir);
+    }
+    catch {
         return null;
-    const parsed = await parseSessionFile(p);
-    return parsed.live;
+    }
+    const files = await walkRollouts(dir);
+    // Sort newest-first by mtime so the freshest readings win.
+    const stamped = [];
+    for (const f of files) {
+        try {
+            stamped.push({ mtime: (await fs.promises.stat(f)).mtimeMs, path: f });
+        }
+        catch { }
+    }
+    stamped.sort((a, b) => b.mtime - a.mtime);
+    // A single session may only carry one window (e.g. 7D as primary, secondary
+    // null). Merge across the most recent sessions, keeping the freshest non-null
+    // value for each window, so both 5H and 7D stay populated.
+    let merged = null;
+    const SCAN = 25;
+    for (const { path: p } of stamped.slice(0, SCAN)) {
+        const { live } = await parseSessionFile(p);
+        if (!live)
+            continue;
+        if (!merged) {
+            merged = { ...live };
+        }
+        else {
+            if (!merged.five_hour && live.five_hour)
+                merged.five_hour = live.five_hour;
+            if (!merged.seven_day && live.seven_day)
+                merged.seven_day = live.seven_day;
+            if (!merged.plan_type && live.plan_type)
+                merged.plan_type = live.plan_type;
+            if (!merged.model_name && live.model_name)
+                merged.model_name = live.model_name;
+        }
+        if (merged.five_hour && merged.seven_day)
+            break;
+    }
+    return merged;
 }
 async function aggregateHistory() {
     const out = {
