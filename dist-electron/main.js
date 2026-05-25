@@ -50,6 +50,19 @@ let lastEmitTs = 0;
 let lastGoodSnap = { claude: null, codex: null };
 const VITE_DEV_URL = process.env.VITE_DEV_URL || "http://localhost:1420";
 const isDev = !electron_1.app.isPackaged && process.env.CLAUDEGAUGE_DEV === "1";
+const gotSingleInstanceLock = electron_1.app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+    electron_1.app.quit();
+}
+electron_1.app.on("second-instance", () => {
+    if (!mainWindow)
+        return;
+    if (!mainWindow.isVisible())
+        mainWindow.show();
+    if (mainWindow.isMinimized())
+        mainWindow.restore();
+    mainWindow.focus();
+});
 function buildPath() {
     return path.join(__dirname, "..", "dist", "index.html");
 }
